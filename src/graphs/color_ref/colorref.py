@@ -20,38 +20,42 @@ class Coloring(object):
 
 def basic_colorref(g):
   graphs = load_graphs(g)
-  coloring_list = []
+  eq_coloring_list = []
 
   for index, graph in enumerate(graphs):
-    color_map = {v: len(v.neighbours) for v in graph.vertices}
-    color_classes = get_color_classes(color_map)
+    init_color_map = {v: len(v.neighbours) for v in graph.vertices}
 
-    stable = False
-    iteration = 0
+    refined_color_map, color_classes, iteration = refine_color_map(init_color_map)
 
-    while not stable:
-      new_color_map = refine_color_map(color_map)
-      new_color_classes = get_color_classes(new_color_map)
+    eq_coloring_list = update_coloring_list(eq_coloring_list, refined_color_map, color_classes, index, iteration)
 
-      stable = color_classes == new_color_classes
-
-      color_map = new_color_map
-      color_classes = new_color_classes
-      iteration += 1
-
-    if iteration == 1:
-      iteration = 0
-
-    coloring_list = update_coloring_list(coloring_list, color_map, color_classes, index, iteration)
-
-  return [c.get_result() for c in coloring_list]
+  return [c.get_result() for c in eq_coloring_list]
 
 def load_graphs(g):
   with open(g) as f:
     G = load_graph(f, read_list=True)
   return G[0]
 
-def refine_color_map(color_map):
+def refine_color_map(init_color_map):
+  color_map = init_color_map
+  color_classes = get_color_classes(color_map)
+  iteration = 0
+  stable = False
+
+  while not stable:
+    new_color_map = get_color_map(color_map)
+    new_color_classes = get_color_classes(new_color_map)
+
+    stable = color_classes == new_color_classes
+
+    color_map = new_color_map
+    color_classes = new_color_classes
+
+    iteration += 1
+
+  return color_map, color_classes, iteration
+
+def get_color_map(color_map):
   return {v: get_neighbourhood_hash(v, color_map) for v in color_map.keys()}
 
 def get_neighbourhood_hash(v, color_map):
@@ -60,40 +64,42 @@ def get_neighbourhood_hash(v, color_map):
 def get_color_classes(color_map):
   return sorted(Counter(color_map.values()).values())
 
-def update_coloring_list(coloring_list, color_map, color_classes, index, iteration):
+def update_coloring_list(eq_coloring_list, color_map, color_classes, index, iteration):
   color_list = sorted(color_map.values())
-  coloring = find_isomorphs(coloring_list, color_list)
+  coloring = find_coloring(eq_coloring_list, color_list)
 
   if coloring:
     coloring.graphs.append(index)
   else:
-    coloring_list.append(
+    eq_coloring_list.append(
         Coloring(
             [index],
             color_list,
-            color_classes,
+            [dict(Counter(color_classes))],
             iteration,
             all(x == 1 for x in color_classes)
         ))
-  return coloring_list
+  return eq_coloring_list
 
-def find_isomorphs(coloring_list, color_list):
+def find_coloring(coloring_list, color_list):
   for coloring in coloring_list:
     if coloring == color_list:
       return coloring
 
 def main():
   current = time.time()
-  # print(basic_colorref(
-  #     "SampleGraphsBasicColorRefinement/colorref_smallexample_4_16.grl"))
-  # print(basic_colorref("SampleGraphsBasicColorRefinement/colorref_largeexample_4_1026.grl"))
-  print(basic_colorref("Benchmark_instances/CrefBenchmark1.grl"))
-  print(basic_colorref("Benchmark_instances/CrefBenchmark2.grl"))
-  print(basic_colorref("Benchmark_instances/CrefBenchmark3.grl"))
-  print(basic_colorref("Benchmark_instances/CrefBenchmark4.grl"))
-  print(basic_colorref("Benchmark_instances/CrefBenchmark5.grl"))
-  print(basic_colorref("Benchmark_instances/CrefBenchmark6.grl"))
-  print(time.time() - current)
+  benchmarks = ["Benchmark_instances/CrefBenchmark1.grl", "Benchmark_instances/CrefBenchmark2.grl",
+                "Benchmark_instances/CrefBenchmark3.grl", "Benchmark_instances/CrefBenchmark4.grl",
+                "Benchmark_instances/CrefBenchmark5.grl", "Benchmark_instances/CrefBenchmark6.grl"]
+  solutions = [[([0, 2], [{1: 3, 2: 312}], 143, False), ([1, 3], [{1: 3, 2: 312}], 188, False)],
+               [([0, 2, 4], [{1: 514}], 4, True), ([1, 3], [{1: 514}], 4, True)],
+               [([0, 2, 3], [{1: 1026}], 4, True), ([1, 4], [{1: 1026}], 4, True)],
+               [([0, 1], [{1: 2050}], 4, True), ([2, 3], [{1: 2050}], 4, True)],
+               [([0, 9], [{3: 9}], 3, False), ([1, 6, 7], [{1: 9, 2: 9}], 6, False), ([2, 3, 4], [{3: 9}], 3, False), ([5, 8], [{1: 9, 2: 9}], 6, False)],
+               [([0, 1], [{1: 3, 2: 632}], 287, False), ([2, 3, 4], [{1: 3, 2: 632}], 380, False)]]
+  result = list(map(basic_colorref, benchmarks))
+  elapsed = time.time() - current
+  print(f'{result}\n{result == solutions}\n{elapsed}')
 
 if __name__ == "__main__":
   main()
