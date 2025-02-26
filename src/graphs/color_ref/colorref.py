@@ -87,7 +87,6 @@ def find_coloring(coloring_list, color_list):
       return coloring
 
 def main():
-  current = time.time()
   benchmarks = ["Benchmark_instances/CrefBenchmark1.grl", "Benchmark_instances/CrefBenchmark2.grl",
                 "Benchmark_instances/CrefBenchmark3.grl", "Benchmark_instances/CrefBenchmark4.grl",
                 "Benchmark_instances/CrefBenchmark5.grl", "Benchmark_instances/CrefBenchmark6.grl"]
@@ -97,9 +96,11 @@ def main():
                [([0, 1], [{1: 2050}], 4, True), ([2, 3], [{1: 2050}], 4, True)],
                [([0, 9], [{3: 9}], 3, False), ([1, 6, 7], [{1: 9, 2: 9}], 6, False), ([2, 3, 4], [{3: 9}], 3, False), ([5, 8], [{1: 9, 2: 9}], 6, False)],
                [([0, 1], [{1: 3, 2: 632}], 287, False), ([2, 3, 4], [{1: 3, 2: 632}], 380, False)]]
-  result = list(map(basic_colorref, benchmarks))
-  elapsed = time.time() - current
-  print(f'{result}\n{result == solutions}\n{elapsed}')
+  for i, benchmark in enumerate(benchmarks):
+    start = time.time()
+    result = basic_colorref(benchmark)
+    elapsed = time.time() - start
+    print(f'Benchmark {i + 1}\n{result}\n{result == solutions[i]}\n{elapsed}\n')
 
 if __name__ == "__main__":
   main()
